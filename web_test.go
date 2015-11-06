@@ -2,16 +2,17 @@ package main
 
 import (
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
 	"github.com/CiscoCloud/marathon-consul/apps"
 	"github.com/CiscoCloud/marathon-consul/consul"
 	"github.com/CiscoCloud/marathon-consul/events"
 	"github.com/CiscoCloud/marathon-consul/mocks"
 	"github.com/CiscoCloud/marathon-consul/tasks"
 	"github.com/stretchr/testify/assert"
-	"net/http"
-	"net/http/httptest"
-	"strings"
-	"testing"
 )
 
 var (
@@ -56,11 +57,8 @@ func TestForwardHandlerHandleAppEvent(t *testing.T) {
 	assert.Nil(t, err)
 
 	// test!
-	recorder := httptest.NewRecorder()
-	handler.HandleAppEvent(recorder, body)
-
-	assert.Equal(t, 200, recorder.Code)
-	assert.Equal(t, "OK\n", recorder.Body.String())
+	err = handler.HandleAppEvent(body)
+	assert.Nil(t, err)
 
 	result, _, err := kv.Get(testApp.Key())
 	assert.Nil(t, err)
@@ -85,11 +83,8 @@ func TestForwardHandlerHandleTerminationEvent(t *testing.T) {
 	assert.Nil(t, err)
 
 	// test!
-	recorder := httptest.NewRecorder()
-	handler.HandleTerminationEvent(recorder, body)
-
-	assert.Equal(t, 200, recorder.Code)
-	assert.Equal(t, "OK\n", recorder.Body.String())
+	err = handler.HandleTerminationEvent(body)
+	assert.Nil(t, err)
 
 	result, _, err := kv.Get(testApp.Key())
 	assert.Nil(t, err)
@@ -122,10 +117,8 @@ func TestForwardHandlerHandleStatusEvent(t *testing.T) {
 		assert.Nil(t, err)
 
 		// test
-		recorder := httptest.NewRecorder()
-		handler.HandleStatusEvent(recorder, tempBody)
-		assert.Equal(t, 200, recorder.Code)
-		assert.Equal(t, "OK\n", recorder.Body.String())
+		err = handler.HandleStatusEvent(tempBody)
+		assert.Nil(t, err)
 
 		// assert
 		result, _, err := kv.Get(testTask.Key())
@@ -139,10 +132,8 @@ func TestForwardHandlerHandleStatusEvent(t *testing.T) {
 		tempTask, _ := tasks.ParseTask(tempBody)
 
 		// test
-		recorder := httptest.NewRecorder()
-		handler.HandleStatusEvent(recorder, tempBody)
-		assert.Equal(t, 200, recorder.Code)
-		assert.Equal(t, "OK\n", recorder.Body.String())
+		err := handler.HandleStatusEvent(tempBody)
+		assert.Nil(t, err)
 
 		// assert
 		result, _, err := kv.Get(tempTask.Key())
@@ -156,8 +147,6 @@ func TestForwardHandlerHandleStatusEvent(t *testing.T) {
 
 	// bad status
 	tempBody := tempTaskBody("TASK_BATMAN")
-	recorder := httptest.NewRecorder()
-	handler.HandleStatusEvent(recorder, tempBody)
-	assert.Equal(t, 500, recorder.Code)
-	assert.Equal(t, "unknown task status\n", recorder.Body.String())
+	err := handler.HandleStatusEvent(tempBody)
+	assert.NotNil(t, err)
 }
