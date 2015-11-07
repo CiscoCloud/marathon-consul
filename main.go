@@ -42,7 +42,7 @@ func main() {
 	fh := &ForwardHandler{consul}
 
 	version, err := remote.Version()
-	if version > "0.10.0" {
+	if version >= "0.9.0" {
 		log.Info(fmt.Sprintf("detected Marathon v%s with /v2/events endpoint", version))
 		SubscribeToEventStream(config, remote, fh)
 	} else {
