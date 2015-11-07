@@ -4,13 +4,14 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"net/url"
+
 	"github.com/CiscoCloud/marathon-consul/apps"
 	"github.com/CiscoCloud/marathon-consul/tasks"
 	log "github.com/Sirupsen/logrus"
 	"github.com/sethgrid/pester"
-	"io/ioutil"
-	"net/http"
-	"net/url"
 )
 
 type Marathoner interface {
@@ -92,6 +93,48 @@ func (m Marathon) ParseApps(jsonBlob []byte) ([]*apps.App, error) {
 	err := json.Unmarshal(jsonBlob, apps)
 
 	return apps.Apps, err
+}
+
+func (m Marathon) Version() (string, error) {
+	log.WithField("location", m.Location).Debug("asking Marathon for its version")
+	client := m.getClient()
+
+	request, err := http.NewRequest("GET", m.Url("/v2/info"), nil)
+	if err != nil {
+		log.Error(err.Error())
+		return "", err
+	}
+	request.Header.Add("Accept", "application/json")
+
+	infoResponse, err := client.Do(request)
+	if err != nil || (infoResponse.StatusCode != 200) {
+		m.logHTTPError(infoResponse, err)
+		return "", err
+	}
+
+	body, err := ioutil.ReadAll(infoResponse.Body)
+	if err != nil {
+		m.logHTTPError(infoResponse, err)
+		return "", err
+	}
+
+	version, err := m.ParseInfo(body)
+	if err != nil {
+		m.logHTTPError(infoResponse, err)
+		return "", err
+	}
+
+	return version, err
+}
+
+type InfoResponse struct {
+	Version string `json:"version"`
+}
+
+func (m Marathon) ParseInfo(resp []byte) (string, error) {
+	info := &InfoResponse{}
+	err := json.Unmarshal(resp, info)
+	return info.Version, err
 }
 
 func (m Marathon) Tasks(app string) ([]*tasks.Task, error) {
