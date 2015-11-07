@@ -80,8 +80,14 @@ Where `marathon-consul.json` is similar to (replacing the image with your image)
 
 You can also add [options to authenticate against Consul](#options).
 
-The Marathon event bus should point to [`/events``](#endpoints). You can
-set up the event subscription with a call similar to this one:
+If your version of Marathon is 0.10.0 or newer, no further setup is required.
+Marathon-consul will autodetect the /v2/events endpoint and use it to update
+Consul.
+
+If your version of Marathon does not have the event bus endpoint, you must
+configure an event subscription. *The Marathon event bus should point to
+[`/events``](#endpoints)*. You can set up the event subscription with a call
+similar to this one:
 
 ```
 curl -X POST 'http://marathon.service.consul:8080/v2/eventSubscriptions?callbackUrl=http://marathon-consul.service.consul:4000/events'

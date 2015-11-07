@@ -39,6 +39,7 @@ func (m *MarathonSync) Sync() error {
 			return err
 		}
 	}
+	log.Info("synced!")
 
 	return nil
 }
