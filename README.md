@@ -80,7 +80,7 @@ Where `marathon-consul.json` is similar to (replacing the image with your image)
 
 You can also add [options to authenticate against Consul](#options).
 
-If your version of Marathon is 0.10.0 or newer, no further setup is required.
+If your version of Marathon is 0.9.0 or newer, no further setup is required.
 Marathon-consul will autodetect the /v2/events endpoint and use it to update
 Consul.
 
