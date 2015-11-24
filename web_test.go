@@ -149,4 +149,5 @@ func TestForwardHandlerHandleStatusEvent(t *testing.T) {
 	tempBody := tempTaskBody("TASK_BATMAN")
 	err := handler.HandleStatusEvent(tempBody)
 	assert.NotNil(t, err)
+	assert.Equal(t, err.Error(), "unknown task status")
 }
