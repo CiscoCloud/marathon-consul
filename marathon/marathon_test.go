@@ -1,8 +1,10 @@
 package marathon
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	version "github.com/hashicorp/go-version"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestUrl(t *testing.T) {
@@ -61,8 +63,12 @@ func TestParseVersion(t *testing.T) {
 		}
   }`)
 	m, _ := NewMarathon("localhost:8080", "http", nil)
-	version, err := m.ParseInfo(infoBlob)
-	assert.Equal(t, version, "0.11.1")
+	v, err := m.ParseVersion(infoBlob)
+	assert.Equal(t, v, "0.11.1")
+	assert.Nil(t, err)
+
+	// quickly verify that this version can be parsed with the version library
+	_, err = version.NewVersion(v)
 	assert.Nil(t, err)
 }
 

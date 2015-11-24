@@ -11,6 +11,7 @@ import (
 	"github.com/CiscoCloud/marathon-consul/apps"
 	"github.com/CiscoCloud/marathon-consul/tasks"
 	log "github.com/Sirupsen/logrus"
+	version "github.com/hashicorp/go-version"
 	"github.com/sethgrid/pester"
 )
 
@@ -95,43 +96,49 @@ func (m Marathon) ParseApps(jsonBlob []byte) ([]*apps.App, error) {
 	return apps.Apps, err
 }
 
-func (m Marathon) Version() (string, error) {
+func (m Marathon) Version() (*version.Version, error) {
 	log.WithField("location", m.Location).Debug("asking Marathon for its version")
 	client := m.getClient()
 
 	request, err := http.NewRequest("GET", m.Url("/v2/info"), nil)
 	if err != nil {
 		log.Error(err.Error())
-		return "", err
+		return nil, err
 	}
 	request.Header.Add("Accept", "application/json")
 
 	infoResponse, err := client.Do(request)
 	if err != nil || (infoResponse.StatusCode != 200) {
 		m.logHTTPError(infoResponse, err)
-		return "", err
+		return nil, err
 	}
 
 	body, err := ioutil.ReadAll(infoResponse.Body)
 	if err != nil {
 		m.logHTTPError(infoResponse, err)
-		return "", err
+		return nil, err
 	}
 
-	version, err := m.ParseInfo(body)
+	v, err := m.ParseVersion(body)
 	if err != nil {
 		m.logHTTPError(infoResponse, err)
-		return "", err
+		return nil, err
 	}
 
-	return version, err
+	parsedVersion, err := version.NewVersion(v)
+	if err != nil {
+		log.WithError(err).Error("error parsing version: %s", v)
+		return nil, err
+	}
+
+	return parsedVersion, err
 }
 
 type InfoResponse struct {
 	Version string `json:"version"`
 }
 
-func (m Marathon) ParseInfo(resp []byte) (string, error) {
+func (m Marathon) ParseVersion(resp []byte) (string, error) {
 	info := &InfoResponse{}
 	err := json.Unmarshal(resp, info)
 	return info.Version, err
