@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/CiscoCloud/marathon-consul/config"
 	"github.com/CiscoCloud/marathon-consul/consul"
@@ -59,65 +60,68 @@ func main() {
 }
 
 func SubscribeToEventStream(config *config.Config, m marathon.Marathon, fh *ForwardHandler) {
-	buffer := make([]byte, 1024)
-	req, err := http.NewRequest("GET", m.Url("/v2/events"), bytes.NewBuffer(buffer))
-	if err != nil {
-		log.WithError(err).Error("Could not GET /v2/events")
-		os.Exit(1)
-	}
-	req.Header.Set("Accept", "text/event-stream")
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		log.WithError(err).Error("HTTP request for /v2/events failed!")
-		os.Exit(1)
-	}
-	defer resp.Body.Close()
-	reader := bufio.NewReader(resp.Body)
-
+Reconnect:
 	for {
-		body, err := reader.ReadBytes('\n')
+		resp, err := makeEventStreamRequest(m.Url("/v2/events"))
+		defer resp.Body.Close()
+		reader := bufio.NewReader(resp.Body)
+		log.Info("connected to /v2/events endpoint")
+
 		if err != nil {
-			panic(err)
+			log.WithError(err).Error("error connecting to event stream!")
+			time.Sleep(10 * time.Second)
+			log.Info("reconnecting...")
+			continue Reconnect
 		}
 
-		// marathon sends blank lines to keep the connection alive
-		if bytes.Equal(body, []byte{'\r', '\n'}) {
-			continue
-		}
+		for {
+			body, err := reader.ReadBytes('\n')
 
-		// we don't care about these headers, since the data blob has an
-		// "eventType" field
-		if string(body[0:6]) == "event:" {
-			continue
-		}
-
-		if string(body[0:5]) == "data:" {
-			body = body[6:]
-			eventType, err := events.EventType(body)
 			if err != nil {
-				log.WithError(err).Error("error parsing event")
+				log.WithError(err).Error("error reading from event stream!")
+				time.Sleep(10 * time.Second)
+				log.Info("reconnecting...")
+				continue Reconnect
+			}
+
+			// marathon sends blank lines to keep the connection alive
+			if bytes.Equal(body, []byte{'\r', '\n'}) {
 				continue
 			}
 
-			eventLogger := log.WithField("eventType", eventType)
-			switch eventType {
-			case "api_post_event", "deployment_info":
-				eventLogger.Info("handling event")
-				err = fh.HandleAppEvent(body)
-			case "app_terminated_event":
-				eventLogger.Info("handling event")
-				err = fh.HandleTerminationEvent(body)
-			case "status_update_event":
-				eventLogger.Info("handling event")
-				err = fh.HandleStatusEvent(body)
-			default:
-				eventLogger.Info("not handling event")
+			// we don't care about these headers, since the data blob has an
+			// "eventType" field
+			if string(body[0:6]) == "event:" {
+				continue
 			}
 
-			if err != nil {
-				eventLogger.WithError(err).Error("body generated error")
-				continue
+			if string(body[0:5]) == "data:" {
+				body = body[6:]
+				eventType, err := events.EventType(body)
+				if err != nil {
+					log.WithError(err).Error("error parsing event")
+					continue
+				}
+
+				eventLogger := log.WithField("eventType", eventType)
+				switch eventType {
+				case "api_post_event", "deployment_info":
+					eventLogger.Info("handling event")
+					err = fh.HandleAppEvent(body)
+				case "app_terminated_event":
+					eventLogger.Info("handling event")
+					err = fh.HandleTerminationEvent(body)
+				case "status_update_event":
+					eventLogger.Info("handling event")
+					err = fh.HandleStatusEvent(body)
+				default:
+					eventLogger.Info("not handling event")
+				}
+
+				if err != nil {
+					eventLogger.WithError(err).Error("body generated error")
+					continue
+				}
 			}
 		}
 	}
@@ -129,4 +133,22 @@ func ServeWebhookReceiver(config *config.Config, fh *ForwardHandler) {
 
 	log.WithField("port", config.Web.Listen).Info("listening")
 	log.Fatal(http.ListenAndServe(config.Web.Listen, nil))
+}
+
+func makeEventStreamRequest(url string) (*http.Response, error) {
+	buffer := make([]byte, 1024)
+	req, err := http.NewRequest("GET", url, bytes.NewBuffer(buffer))
+	if err != nil {
+		log.WithError(err).Error("Could not GET /v2/events")
+		os.Exit(1)
+	}
+	req.Header.Set("Accept", "text/event-stream")
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.WithError(err).Error("HTTP request for /v2/events failed!")
+		return nil, err
+	}
+
+	return resp, nil
 }
