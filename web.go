@@ -56,7 +56,7 @@ func (fh *ForwardHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(500)
 		fmt.Fprintln(w, err.Error())
-		log.Printf("[ERROR] body generated error: %s", err.Error())
+		log.WithError(err).Error("body generated error")
 	} else {
 		w.WriteHeader(200)
 		fmt.Fprintln(w, "OK")
@@ -87,12 +87,7 @@ func (fh *ForwardHandler) HandleTerminationEvent(body []byte) error {
 
 	// app_terminated_event only has one app in it, so we will just take care of
 	// it instead of looping
-	err = fh.consul.DeleteApp(event.Apps()[0])
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return fh.consul.DeleteApp(event.Apps()[0])
 }
 
 func (fh *ForwardHandler) HandleStatusEvent(body []byte) error {
@@ -116,10 +111,5 @@ func (fh *ForwardHandler) HandleStatusEvent(body []byte) error {
 	default:
 		err = errors.New("unknown task status")
 	}
-
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }

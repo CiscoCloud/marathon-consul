@@ -66,7 +66,6 @@ func SubscribeToEventStream(config *config.Config, m marathon.Marathon, fh *Forw
 		os.Exit(1)
 	}
 	defer resp.Body.Close()
-	log.Info("reader here")
 	reader := bufio.NewReader(resp.Body)
 
 	for {
@@ -94,22 +93,23 @@ func SubscribeToEventStream(config *config.Config, m marathon.Marathon, fh *Forw
 				continue
 			}
 
+			eventLogger := log.WithField("eventType", eventType)
 			switch eventType {
 			case "api_post_event", "deployment_info":
-				log.WithField("eventType", eventType).Info("handling event")
+				eventLogger.Info("handling event")
 				err = fh.HandleAppEvent(body)
 			case "app_terminated_event":
-				log.WithField("eventType", "app_terminated_event").Info("handling event")
+				eventLogger.Info("handling event")
 				err = fh.HandleTerminationEvent(body)
 			case "status_update_event":
-				log.WithField("eventType", "status_update_event").Info("handling event")
+				eventLogger.Info("handling event")
 				err = fh.HandleStatusEvent(body)
 			default:
-				log.WithField("eventType", eventType).Info("not handling event")
+				eventLogger.Info("not handling event")
 			}
 
 			if err != nil {
-				log.WithError(err).Error("body generated error")
+				eventLogger.WithError(err).Error("body generated error")
 				continue
 			}
 		}

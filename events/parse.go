@@ -62,5 +62,5 @@ func ParseEvent(jsonBlob []byte) (event Event, err error) {
 		return nil, errors.New("Unknown event type: " + eventType)
 	}
 
-	return nil, errors.New(fmt.Sprintf("Error processing event type: %s: %s", eventType, err.Error()))
+	return nil, fmt.Errorf("Error processing event type: %s: %s", eventType, err.Error())
 }
