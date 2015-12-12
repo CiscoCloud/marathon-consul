@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"fmt"
 	"net/http"
 	"os"
 	"time"
@@ -51,10 +50,10 @@ func main() {
 	minVersion, _ := version.NewConstraint(">= 0.9.0")
 
 	if minVersion.Check(v) {
-		log.Info(fmt.Sprintf("detected Marathon v%s with /v2/events endpoint", v))
+		log.WithField("version", v).Info("detected Marathon events endpoint")
 		SubscribeToEventStream(config, remote, fh)
 	} else {
-		log.Info(fmt.Sprintf("detected Marathon v%s -- make sure to set up an eventSubscription for this process", v))
+		log.WithField("version", v).Info("detected old Marathon version -- make sure to set up an eventSubscription for this process")
 		ServeWebhookReceiver(config, fh)
 	}
 }
