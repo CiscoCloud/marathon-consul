@@ -3,6 +3,7 @@ package events
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 )
 
 var (
@@ -47,17 +48,19 @@ func parseAppTerminatedEvent(jsonBlob []byte) (Event, error) {
 func ParseEvent(jsonBlob []byte) (event Event, err error) {
 	eventType, err := EventType(jsonBlob)
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	switch eventType {
 	case "api_post_event":
-		event, err = parseAPIPostEvent(jsonBlob)
+		return parseAPIPostEvent(jsonBlob)
 	case "deployment_info":
-		event, err = parseDeploymentInfoEvent(jsonBlob)
+		return parseDeploymentInfoEvent(jsonBlob)
 	case "app_terminated_event":
-		event, err = parseAppTerminatedEvent(jsonBlob)
+		return parseAppTerminatedEvent(jsonBlob)
+	default:
+		return nil, errors.New("Unknown event type: " + eventType)
 	}
 
-	return
+	return nil, fmt.Errorf("Error processing event type: %s: %s", eventType, err.Error())
 }

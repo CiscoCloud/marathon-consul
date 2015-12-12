@@ -1,8 +1,10 @@
 package marathon
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	version "github.com/hashicorp/go-version"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestUrl(t *testing.T) {
@@ -12,6 +14,62 @@ func TestUrl(t *testing.T) {
 	url := m.Url("/v2/apps")
 
 	assert.Equal(t, url, "http://localhost:8080/v2/apps")
+}
+
+func TestParseVersion(t *testing.T) {
+	t.Parallel()
+
+	infoBlob := []byte(`{
+		"http_config": {
+			"https_port": 8443,
+			"http_port": 8080,
+			"assets_path": null
+		},
+		"name": "marathon",
+		"version": "0.11.1",
+		"elected": true,
+		"leader": "marathon-leader.example.com:8080",
+		"frameworkId": "20150714-191408-4163031306-5050-1590-0000",
+		"marathon_config": {
+			"mesos_leader_ui_url": "http://marathon-leader.example.com:5050/",
+			"leader_proxy_read_timeout_ms": 10000,
+			"leader_proxy_connection_timeout_ms": 5000,
+			"executor": "//cmd",
+			"local_port_max": 20000,
+			"local_port_min": 10000,
+			"checkpoint": true,
+			"ha": true,
+			"framework_name": "marathon",
+			"failover_timeout": 604800,
+			"master": "zk://zk.example.com:2181/mesos",
+			"hostname": "marathon-leader.example.com",
+			"webui_url": null,
+			"mesos_role": null,
+			"task_launch_timeout": 300000,
+			"reconciliation_initial_delay": 15000,
+			"reconciliation_interval": 300000,
+			"marathon_store_timeout": 2000,
+			"mesos_user": "root"
+		},
+		"zookeeper_config": {
+			"zk_max_versions": 25,
+			"zk_session_timeout": 1800000,
+			"zk_timeout": 10000,
+			"zk": "zk://zk.example.com:2181/marathon"
+		},
+		"event_subscriber": {
+			"http_endpoints": null,
+			"type": "http_callback"
+		}
+  }`)
+	m, _ := NewMarathon("localhost:8080", "http", nil)
+	v, err := m.ParseVersion(infoBlob)
+	assert.Equal(t, v, "0.11.1")
+	assert.Nil(t, err)
+
+	// quickly verify that this version can be parsed with the version library
+	_, err = version.NewVersion(v)
+	assert.Nil(t, err)
 }
 
 func TestParseApps(t *testing.T) {
