@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"crypto/tls"
 	"net/http"
 	"os"
 	"time"
@@ -61,7 +62,7 @@ func main() {
 func SubscribeToEventStream(config *config.Config, m marathon.Marathon, fh *ForwardHandler) {
 Reconnect:
 	for {
-		resp, err := makeEventStreamRequest(m.Url("/v2/events"))
+		resp, err := makeEventStreamRequest(m.Url("/v2/events"), m.NoVerifySsl)
 		defer resp.Body.Close()
 		reader := bufio.NewReader(resp.Body)
 		log.Info("connected to /v2/events endpoint")
@@ -134,7 +135,7 @@ func ServeWebhookReceiver(config *config.Config, fh *ForwardHandler) {
 	log.Fatal(http.ListenAndServe(config.Web.Listen, nil))
 }
 
-func makeEventStreamRequest(url string) (*http.Response, error) {
+func makeEventStreamRequest(url string, noVerifySsl bool) (*http.Response, error) {
 	buffer := make([]byte, 1024)
 	req, err := http.NewRequest("GET", url, bytes.NewBuffer(buffer))
 	if err != nil {
@@ -143,6 +144,13 @@ func makeEventStreamRequest(url string) (*http.Response, error) {
 	}
 	req.Header.Set("Accept", "text/event-stream")
 	client := &http.Client{}
+	client.Transport = &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: noVerifySsl,
+		},
+	}
+
 	resp, err := client.Do(req)
 	if err != nil {
 		log.WithError(err).Error("HTTP request for /v2/events failed!")

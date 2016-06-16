@@ -8,10 +8,11 @@ import (
 )
 
 type MarathonConfig struct {
-	Location string
-	Protocol string
-	Username string
-	Password string
+	Location    string
+	Protocol    string
+	Username    string
+	Password    string
+	NoVerifySSL bool
 }
 
 func (m MarathonConfig) Validate() {
@@ -29,5 +30,6 @@ func (m MarathonConfig) NewMarathon() (marathon.Marathon, error) {
 		m.Location,
 		m.Protocol,
 		url.UserPassword(m.Username, m.Password),
+		m.NoVerifySSL,
 	)
 }

@@ -27,8 +27,8 @@ type Marathon struct {
 	NoVerifySsl bool
 }
 
-func NewMarathon(location, protocol string, auth *url.Userinfo) (Marathon, error) {
-	return Marathon{location, protocol, auth, false}, nil
+func NewMarathon(location, protocol string, auth *url.Userinfo, sslVerify bool) (Marathon, error) {
+	return Marathon{location, protocol, auth, sslVerify}, nil
 }
 
 func (m Marathon) Url(path string) string {
