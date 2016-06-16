@@ -53,6 +53,7 @@ func (config *Config) parseFlags() {
 	flag.StringVar(&config.Marathon.Protocol, "marathon-protocol", "http", "marathon protocol (http or https)")
 	flag.StringVar(&config.Marathon.Username, "marathon-username", "", "marathon username for basic auth")
 	flag.StringVar(&config.Marathon.Password, "marathon-password", "", "marathon password for basic auth")
+	flag.BoolVar(&config.Marathon.NoVerifySSL, "marathon-noverify", false, "don't verify marathon SSL certificates")
 
 	// General
 	flag.StringVar(&config.LogLevel, "log-level", "info", "log level: panic, fatal, error, warn, info, or debug")

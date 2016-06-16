@@ -10,7 +10,7 @@ import (
 func TestUrl(t *testing.T) {
 	t.Parallel()
 
-	m, _ := NewMarathon("localhost:8080", "http", nil)
+	m, _ := NewMarathon("localhost:8080", "http", nil, false)
 	url := m.Url("/v2/apps")
 
 	assert.Equal(t, url, "http://localhost:8080/v2/apps")
@@ -62,7 +62,7 @@ func TestParseVersion(t *testing.T) {
 			"type": "http_callback"
 		}
   }`)
-	m, _ := NewMarathon("localhost:8080", "http", nil)
+	m, _ := NewMarathon("localhost:8080", "http", nil, false)
 	v, err := m.ParseVersion(infoBlob)
 	assert.Equal(t, v, "0.11.1")
 	assert.Nil(t, err)
@@ -129,7 +129,7 @@ func TestParseApps(t *testing.T) {
 ]}
 `)
 
-	m, _ := NewMarathon("localhost:8080", "http", nil)
+	m, _ := NewMarathon("localhost:8080", "http", nil, false)
 	apps, err := m.ParseApps(appBlob)
 	assert.Nil(t, err)
 	assert.Equal(t, len(apps), 1)
@@ -162,7 +162,7 @@ func TestParseTasks(t *testing.T) {
 }
 `)
 
-	m, _ := NewMarathon("localhost:8080", "http", nil)
+	m, _ := NewMarathon("localhost:8080", "http", nil, false)
 	tasks, err := m.ParseTasks(tasksBlob)
 	assert.Nil(t, err)
 	assert.Equal(t, len(tasks), 2)
