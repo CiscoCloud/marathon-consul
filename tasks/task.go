@@ -8,14 +8,19 @@ import (
 )
 
 type Task struct {
-	Timestamp  string `json:"timestamp"`
-	SlaveID    string `json:"slaveId"`
-	ID         string `json:"id"`
-	TaskStatus string `json:"taskStatus"`
-	AppID      string `json:"appId"`
-	Host       string `json:"host"`
-	Ports      []int  `json:"ports"`
-	Version    string `json:"version"`
+	Timestamp          string                  `json:"timestamp"`
+	SlaveID            string                  `json:"slaveId"`
+	ID                 string                  `json:"id"`
+	TaskStatus         string                  `json:"taskStatus"`
+	AppID              string                  `json:"appId"`
+	Host               string                  `json:"host"`
+	Ports              []int                   `json:"ports"`
+	Version            string                  `json:"version"`
+	HealthCheckResults []TaskHealthCheckResult `json:"healthCheckResults"`
+}
+
+type TaskHealthCheckResult struct {
+	Alive bool `json:"alive"`
 }
 
 func ParseTask(event []byte) (*Task, error) {
@@ -39,4 +44,28 @@ func (task *Task) KV() *api.KVPair {
 		Key:   task.Key(),
 		Value: serialized,
 	}
+}
+
+// Include a derived 'healthy' field in the json output to summarize the
+// health check results, making it easier to act on in a template
+func (task *Task) MarshalJSON() ([]byte, error) {
+	type Alias Task
+	return json.Marshal(&struct {
+		Healthy bool `json:"healthy"`
+		*Alias
+	}{
+		Healthy: task.IsHealthy(),
+		Alias:   (*Alias)(task),
+	})
+}
+
+// return true if any health check says the task is alive
+func (task *Task) IsHealthy() bool {
+	for _, r := range task.HealthCheckResults {
+		if r.Alive {
+			return true
+		}
+	}
+
+	return false
 }

@@ -113,6 +113,8 @@ Reconnect:
 				case "status_update_event":
 					eventLogger.Info("handling event")
 					err = fh.HandleStatusEvent(body)
+				case "health_status_changed_event":
+					err = fh.HandleHealthStatusEvent(body)
 				default:
 					eventLogger.Info("not handling event")
 				}

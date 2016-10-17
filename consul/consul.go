@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/CiscoCloud/marathon-consul/apps"
+	"github.com/CiscoCloud/marathon-consul/health"
 	"github.com/CiscoCloud/marathon-consul/tasks"
 	"strings"
 )
@@ -159,5 +160,32 @@ func (consul *Consul) UpdateTask(task *tasks.Task) error {
 // DeleteTask taske a Task and deletes it from Consul
 func (consul *Consul) DeleteTask(task *tasks.Task) error {
 	_, err := consul.kv.Delete(WithPrefix(consul.AppsPrefix, task.Key()))
+	return err
+}
+
+// UpdateHealth takes a health update message, retrieves its associated task
+// from Consul, and updates the health information
+func (consul *Consul) UpdateHealth(health *health.Health) error {
+	key := WithPrefix(consul.AppsPrefix, health.TaskKey())
+	remote, _, err := consul.kv.Get(key)
+
+	if err != nil {
+		return err
+	}
+
+	if remote == nil {
+		return fmt.Errorf("Task key %s doesn't exist, can't update health", health.TaskKey())
+	}
+
+	task, err := tasks.ParseTask(remote.Value)
+
+	if err != nil {
+		return err
+	}
+
+	task.HealthCheckResults = []tasks.TaskHealthCheckResult{tasks.TaskHealthCheckResult{Alive: health.Alive}}
+
+	err = consul.UpdateTask(task)
+
 	return err
 }

@@ -9,6 +9,7 @@ import (
 
 	"github.com/CiscoCloud/marathon-consul/consul"
 	"github.com/CiscoCloud/marathon-consul/events"
+	"github.com/CiscoCloud/marathon-consul/health"
 	"github.com/CiscoCloud/marathon-consul/tasks"
 	log "github.com/Sirupsen/logrus"
 )
@@ -46,6 +47,9 @@ func (fh *ForwardHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	case "status_update_event":
 		log.WithField("eventType", "status_update_event").Info("handling event")
 		err = fh.HandleStatusEvent(body)
+	case "health_status_changed_event":
+		log.WithField("eventType", "health_status_changed_event").Info("handling event")
+		err = fh.HandleHealthStatusEvent(body)
 	default:
 		log.WithField("eventType", eventType).Info("not handling event")
 		w.WriteHeader(200)
@@ -88,6 +92,18 @@ func (fh *ForwardHandler) HandleTerminationEvent(body []byte) error {
 	// app_terminated_event only has one app in it, so we will just take care of
 	// it instead of looping
 	return fh.consul.DeleteApp(event.Apps()[0])
+}
+
+func (fh *ForwardHandler) HandleHealthStatusEvent(body []byte) error {
+	health, err := health.ParseHealth(body)
+
+	if err != nil {
+		return err
+	}
+
+	err = fh.consul.UpdateHealth(health)
+
+	return err
 }
 
 func (fh *ForwardHandler) HandleStatusEvent(body []byte) error {
