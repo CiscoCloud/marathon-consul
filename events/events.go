@@ -62,3 +62,21 @@ func (event AppTerminatedEvent) Apps() []*apps.App {
 func (event AppTerminatedEvent) GetType() string {
 	return event.Type
 }
+
+type HealthStatusChangeEvent struct {
+	Type      string `json:"eventType"`
+	AppID     string `json:"appId"`
+	TaskID    string `json:"taskId"`
+	Timestamp string `json:"timestamp"`
+	Alive     bool   `json:"alive"`
+}
+
+func (event HealthStatusChangeEvent) Apps() []*apps.App {
+	return []*apps.App{
+		&apps.App{ID: event.AppID},
+	}
+}
+
+func (event HealthStatusChangeEvent) GetType() string {
+	return event.Type
+}

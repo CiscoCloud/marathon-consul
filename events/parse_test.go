@@ -53,3 +53,13 @@ func TestParseEvent_AppTerminatedEvent(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, event, parsed.(AppTerminatedEvent))
 }
+
+func TestParseEvent_HealthStatusChangeEvent(t *testing.T) {
+	event := HealthStatusChangeEvent{Type: "health_status_changed_event"}
+	jsonBlob, err := json.Marshal(event)
+	assert.Nil(t, err)
+
+	parsed, err := ParseEvent(jsonBlob)
+	assert.Nil(t, err)
+	assert.Equal(t, event, parsed.(HealthStatusChangeEvent))
+}

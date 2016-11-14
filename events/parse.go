@@ -43,6 +43,13 @@ func parseAppTerminatedEvent(jsonBlob []byte) (Event, error) {
 	return event, err
 }
 
+func parseHealthStatusChangeEvent(jsonBlob []byte) (Event, error) {
+	event := HealthStatusChangeEvent{}
+	err := json.Unmarshal(jsonBlob, &event)
+
+	return event, err
+}
+
 // ParseEvent combines the functions in this module to return an event without
 // the user having to worry about the *type* of the event.
 func ParseEvent(jsonBlob []byte) (event Event, err error) {
@@ -58,6 +65,9 @@ func ParseEvent(jsonBlob []byte) (event Event, err error) {
 		return parseDeploymentInfoEvent(jsonBlob)
 	case "app_terminated_event":
 		return parseAppTerminatedEvent(jsonBlob)
+	case "health_status_changed_event":
+		return parseHealthStatusChangeEvent(jsonBlob)
+
 	default:
 		return nil, errors.New("Unknown event type: " + eventType)
 	}

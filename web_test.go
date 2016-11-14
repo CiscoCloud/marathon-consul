@@ -10,6 +10,7 @@ import (
 	"github.com/CiscoCloud/marathon-consul/apps"
 	"github.com/CiscoCloud/marathon-consul/consul"
 	"github.com/CiscoCloud/marathon-consul/events"
+	"github.com/CiscoCloud/marathon-consul/health"
 	"github.com/CiscoCloud/marathon-consul/mocks"
 	"github.com/CiscoCloud/marathon-consul/tasks"
 	"github.com/stretchr/testify/assert"
@@ -30,6 +31,13 @@ var (
 
 	testTaskKV = testTask.KV()
 	testAppKV  = testApp.KV()
+
+	testHealth = &health.Health{
+		AppID:     testTask.AppID,
+		TaskID:    testTask.ID,
+		Timestamp: testTask.Timestamp,
+		Alive:     true,
+	}
 )
 
 func TestHealthHandler(t *testing.T) {
@@ -150,4 +158,42 @@ func TestForwardHandlerHandleStatusEvent(t *testing.T) {
 	err := handler.HandleStatusEvent(tempBody)
 	assert.NotNil(t, err)
 	assert.Equal(t, err.Error(), "unknown task status")
+}
+
+func TestForwardHandlerHandleHealthStatusEvent(t *testing.T) {
+	t.Parallel()
+
+	kv := mocks.NewKVer()
+	consul := consul.NewConsul(kv, "")
+	handler := ForwardHandler{consul}
+
+	testEvent := events.HealthStatusChangeEvent{"health_status_changed_event",
+		testHealth.AppID, testHealth.TaskID, testHealth.Timestamp, testHealth.Alive}
+
+	body, err := json.Marshal(testEvent)
+	assert.Nil(t, err)
+
+	// first check that we get an error if expected task isn't in the KV
+	err = handler.HandleHealthStatusEvent(body)
+	assert.NotNil(t, err)
+
+	// populate task that gets updated by health
+	err = consul.UpdateTask(testTask)
+	err = handler.HandleHealthStatusEvent(body)
+	assert.Nil(t, err)
+
+	// check task is updated with alive=true
+	result, _, err := kv.Get(testHealth.TaskKey())
+	assert.Nil(t, err)
+	assert.Contains(t, string(result.Value), "\"alive\":true")
+
+	// test again with alive=false
+	testEvent.Alive = false
+	body, err = json.Marshal(testEvent)
+	err = handler.HandleHealthStatusEvent(body)
+	assert.Nil(t, err)
+
+	result, _, err = kv.Get(testHealth.TaskKey())
+	assert.Nil(t, err)
+	assert.Contains(t, string(result.Value), "\"alive\":false")
 }
