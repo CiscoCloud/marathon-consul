@@ -51,11 +51,13 @@ func (task *Task) KV() *api.KVPair {
 func (task *Task) MarshalJSON() ([]byte, error) {
 	type Alias Task
 	return json.Marshal(&struct {
-		Healthy bool `json:"healthy"`
+		ReportsHealth bool `json:"reportsHealth"`
+		Healthy       bool `json:"healthy"`
 		*Alias
 	}{
-		Healthy: task.IsHealthy(),
-		Alias:   (*Alias)(task),
+		ReportsHealth: true,
+		Healthy:       task.IsHealthy(),
+		Alias:         (*Alias)(task),
 	})
 }
 
